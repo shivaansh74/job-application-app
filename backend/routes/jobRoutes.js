@@ -1,50 +1,39 @@
-// jobRoutes.js
-
 const express = require('express');
 const router = express.Router();
-const JobApplication = require('../models/JobApplication'); // Import the JobApplication model
+const JobApplication = require('../models/JobApplication');
 
 // Get all job applications
 router.get('/', async (req, res) => {
   try {
-    const jobApplications = await JobApplication.find();
-    res.json(jobApplications);
+    const jobs = await JobApplication.find();
+    res.json(jobs);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).send('Server Error');
   }
 });
 
-// Add a new job application
+// Create a new job application
 router.post('/', async (req, res) => {
-  const { company, position, jobLink, status, notes } = req.body;
-
-  const jobApplication = new JobApplication({
-    company,
-    position,
-    jobLink,
-    status,
-    notes,
-  });
-
   try {
-    const newJobApplication = await jobApplication.save();
-    res.status(201).json(newJobApplication);
+    const newJob = new JobApplication(req.body);
+    await newJob.save();
+    res.status(201).json(newJob);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).send('Server Error');
   }
 });
 
 // Update a job application status
 router.patch('/:id', async (req, res) => {
   try {
-    const updatedJobApplication = await JobApplication.findByIdAndUpdate(
+    const updatedJob = await JobApplication.findByIdAndUpdate(
       req.params.id,
-      { $set: req.body },
+      { status: req.body.status },
       { new: true }
     );
-    res.json(updatedJobApplication);
+    res.json(updatedJob);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).send('Server Error');
   }
 });
 
@@ -52,9 +41,9 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await JobApplication.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Job application deleted' });
+    res.status(204).send();
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).send('Server Error');
   }
 });
 

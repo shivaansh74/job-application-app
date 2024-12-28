@@ -1,0 +1,54 @@
+/* Styling for the delete button (trash can) */
+.trash-btn {
+  padding: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  border: none;
+  color: white;
+  border-radius: 5px;
+}
+
+/* Modal styling */
+.delete-confirmation-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  width: 300px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.confirm-btn,
+.cancel-btn {
+  padding: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+}
+
+.confirm-btn {
+  background-color: red;
+  color: white;
+}
+
+.cancel-btn {
+  background-color: grey;
+  color: white;
+}

@@ -1,34 +1,30 @@
-// server.js
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config(); // Load environment variables from .env file
+const jobRoutes = require('./routes/jobRoutes');
+require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 5000;
-
-// Import routes
-const jobRoutes = require('./routes/jobRoutes');
 
 // Middleware
-app.use(cors());
-app.use(express.json()); // To parse JSON request bodies
+app.use(cors()); // Enable CORS
+app.use(express.json()); // Parse incoming JSON requests
 
-// Connect to MongoDB
+// Database connection
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.log('Error connecting to MongoDB:', err));
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error: ', err));
 
-// Use routes
-app.use('/api/job-applications', jobRoutes);
+// Routes
+app.use('/api/jobs', jobRoutes);
 
-// Sample route to test
+// Default route
 app.get('/', (req, res) => {
-  res.send('Job Application Tracker API is working');
+  res.send('Welcome to the Job Tracker API');
 });
 
 // Start the server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
