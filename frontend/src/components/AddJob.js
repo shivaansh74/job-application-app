@@ -97,10 +97,10 @@ const AddJob = () => {
             className="w-full p-2 border rounded"
           >
             <option value="">Select Status</option>
-            <option value="Applied">Applied</option>
-            <option value="Interviewed">Interviewed</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Rejected">Rejected</option>
+            <option value="Applied" className="bg-blue-200 text-blue-800">Applied</option>
+            <option value="Interviewed" className="bg-blue-100 text-blue-700">Interviewed</option>
+            <option value="Accepted" className="bg-green-200 text-green-800">Accepted</option>
+            <option value="Rejected" className="bg-red-200 text-red-800">Rejected</option>
           </select>
         </div>
         <div className="col-span-2">
