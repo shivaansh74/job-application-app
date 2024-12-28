@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Styling for the delete button (trash can) */
 .trash-btn {
   padding: 10px;
