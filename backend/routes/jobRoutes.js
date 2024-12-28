@@ -1,25 +1,61 @@
+// jobRoutes.js
+
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config(); // Load environment variables from .env file
-const jobRoutes = require('./routes/jobRoutes'); // Correct import for jobRoutes
+const router = express.Router();
+const JobApplication = require('../models/JobApplication'); // Import the JobApplication model
 
-const app = express();
-const port = process.env.PORT || 5000;
-
-// Middleware
-app.use(cors());
-app.use(express.json()); // To parse JSON request bodies
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.log('Error connecting to MongoDB:', err));
-
-// Use routes
-app.use('/api/job-applications', jobRoutes); // Define the route for job applications
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// Get all job applications
+router.get('/', async (req, res) => {
+  try {
+    const jobApplications = await JobApplication.find();
+    res.json(jobApplications);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
+
+// Add a new job application
+router.post('/', async (req, res) => {
+  const { company, position, jobLink, status, notes } = req.body;
+
+  const jobApplication = new JobApplication({
+    company,
+    position,
+    jobLink,
+    status,
+    notes,
+  });
+
+  try {
+    const newJobApplication = await jobApplication.save();
+    res.status(201).json(newJobApplication);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Update a job application status
+router.patch('/:id', async (req, res) => {
+  try {
+    const updatedJobApplication = await JobApplication.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+    res.json(updatedJobApplication);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Delete a job application
+router.delete('/:id', async (req, res) => {
+  try {
+    await JobApplication.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Job application deleted' });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+module.exports = router;
