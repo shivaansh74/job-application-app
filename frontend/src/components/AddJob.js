@@ -1,15 +1,16 @@
 // AddJob.js (Add Job Page)
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_URL from '../config/api';
 
 const AddJob = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: '',
     company: '',
-    status: 'applied',
     location: '',
     salary: '',
+    status: 'applied',
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +28,7 @@ const AddJob = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/jobs', {
+      const response = await fetch(`${API_URL}/api/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,7 +41,7 @@ const AddJob = () => {
         throw new Error('Failed to add job');
       }
 
-      navigate('/');
+      navigate('/jobs');
     } catch (error) {
       console.error('Error adding job:', error);
       alert('Failed to add job');
