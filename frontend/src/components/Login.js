@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = ({ setIsAuthenticated, setCurrentUser }) => {
   const navigate = useNavigate();
@@ -23,11 +23,6 @@ const Login = ({ setIsAuthenticated, setCurrentUser }) => {
     setIsLoading(true);
 
     try {
-      console.log('Attempting to login with:', {
-        username: formData.username,
-        password: formData.password
-      });
-
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
@@ -36,29 +31,16 @@ const Login = ({ setIsAuthenticated, setCurrentUser }) => {
         body: JSON.stringify(formData)
       });
 
-      console.log('Response status:', response.status);
-      
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Store the token in localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Update authentication state
       setIsAuthenticated(true);
       setCurrentUser(data.user);
-
-      console.log('Login successful, stored data:', {
-        token: data.token,
-        user: data.user
-      });
-
-      // Redirect to home page
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
@@ -75,14 +57,6 @@ const Login = ({ setIsAuthenticated, setCurrentUser }) => {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
           </h2>
-          {/* Add debug info in development */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-2 text-center text-sm text-gray-600">
-              <p>Super Admin Credentials:</p>
-              <p>Username: superadmin</p>
-              <p>Password: admin123!@#</p>
-            </div>
-          )}
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
@@ -99,7 +73,7 @@ const Login = ({ setIsAuthenticated, setCurrentUser }) => {
                 type="text"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
+                placeholder="Username or Email"
                 value={formData.username}
                 onChange={handleChange}
               />
@@ -129,6 +103,15 @@ const Login = ({ setIsAuthenticated, setCurrentUser }) => {
             </button>
           </div>
         </form>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              Register here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

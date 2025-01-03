@@ -5,6 +5,10 @@ import AddJob from './components/AddJob';
 import EditJob from './components/EditJob';
 import Login from './components/Login';
 import CreateUser from './components/CreateUser';
+import Register from './components/Register';
+import Dashboard from './components/Dashboard';
+import { ThemeProvider } from './contexts/ThemeContext';
+import ThemeToggle from './components/ThemeToggle';
 import './App.css';
 
 // Protected Route component
@@ -44,101 +48,121 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center">
-              {/* Left section */}
-              <div className="w-1/3">
-                {currentUser?.userType === 1 && (
-                  <Link
-                    to="/create-user"
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
-                  >
-                    Manage Users
-                  </Link>
-                )}
-              </div>
-
-              {/* Center section */}
-              <div className="w-1/3 flex justify-center">
-                <Link 
-                  to="/" 
-                  className="text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors text-center"
-                >
-                  Job Applications Tracker
-                </Link>
-              </div>
-
-              {/* Right section */}
-              <div className="w-1/3 flex justify-end">
-                {isAuthenticated && currentUser && (
-                  <div className="flex items-center space-x-4">
-                    <span className="text-gray-600">
-                      Welcome, {currentUser.username}
-                      {currentUser.userType === 1 ? ' (Admin)' : ''}
-                    </span>
-                    <button
-                      onClick={handleLogout}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+    <ThemeProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-bg-primary transition-colors duration-200">
+          <header className="bg-white dark:bg-dark-bg-secondary shadow-sm">
+            <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center">
+                {/* Left section */}
+                <div className="w-1/3">
+                  {currentUser?.userType === 1 && (
+                    <Link
+                      to="/create-user"
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
                     >
-                      Logout
-                    </button>
-                  </div>
-                )}
+                      Manage Users
+                    </Link>
+                  )}
+                </div>
+
+                {/* Center section */}
+                <div className="w-1/3 flex justify-center">
+                  <Link 
+                    to="/" 
+                    className="text-2xl font-bold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    Job Applications Tracker
+                  </Link>
+                </div>
+
+                {/* Right section */}
+                <div className="w-1/3 flex justify-end items-center space-x-4">
+                  {isAuthenticated && (
+                    <Link
+                      to="/dashboard"
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
+                    >
+                      Dashboard
+                    </Link>
+                  )}
+                  <ThemeToggle />
+                  {isAuthenticated && currentUser && (
+                    <div className="flex items-center space-x-4">
+                      <span className="text-gray-600 dark:text-gray-300">
+                        Welcome, {currentUser.username}
+                        {currentUser.userType === 1 ? ' (Admin)' : ''}
+                      </span>
+                      <button
+                        onClick={handleLogout}
+                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </header>
-        
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <Routes>
-            <Route 
-              path="/login" 
-              element={
-                <Login 
-                  setIsAuthenticated={setIsAuthenticated} 
-                  setCurrentUser={setCurrentUser}
-                />
-              } 
-            />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <JobList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/add-job"
-              element={
-                <ProtectedRoute>
-                  <AddJob />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/edit-job/:id"
-              element={
-                <ProtectedRoute>
-                  <EditJob />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-user"
-              element={
-                <ProtectedRoute>
-                  {currentUser?.userType === 1 ? <CreateUser /> : <Navigate to="/" replace />}
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+          </header>
+          
+          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <Routes>
+              <Route 
+                path="/login" 
+                element={
+                  <Login 
+                    setIsAuthenticated={setIsAuthenticated} 
+                    setCurrentUser={setCurrentUser}
+                  />
+                } 
+              />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <JobList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/add-job"
+                element={
+                  <ProtectedRoute>
+                    <AddJob />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/edit-job/:id"
+                element={
+                  <ProtectedRoute>
+                    <EditJob />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-user"
+                element={
+                  <ProtectedRoute>
+                    {currentUser?.userType === 1 ? <CreateUser /> : <Navigate to="/" replace />}
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </ThemeProvider>
   );
 }
 

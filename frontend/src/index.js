@@ -1,7 +1,28 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client'; // Import ReactDOM from 'react-dom/client'
-import App from './App';
+import { createRoot } from 'react-dom/client';
 import './index.css';
+import App from './App';
 
-const root = ReactDOM.createRoot(document.getElementById('root')); // Create root element
-root.render(<App />); // Use root.render to render the App component
+// Add these styles to your index.css
+const styles = `
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply transition-colors duration-200;
+  }
+`;
+
+const container = document.getElementById('root');
+const root = createRoot(container);
+
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

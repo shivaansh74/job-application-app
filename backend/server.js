@@ -1,47 +1,67 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const jobRoutes = require('./routes/jobRoutes');
 const authRoutes = require('./routes/authRoutes');
+const jobRoutes = require('./routes/jobRoutes');
 require('dotenv').config();
 
 const app = express();
 
-// CORS configuration
+// Detailed CORS configuration
 app.use(cors({
-  origin: 'http://localhost:3000', // Your React app's URL
+  origin: 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Middleware
 app.use(express.json());
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 
-// Test route
-app.get('/test', (req, res) => {
-  res.json({ message: 'Server is running' });
+// 404 handler
+app.use((req, res) => {
+  console.log('404 Not Found:', req.method, req.url);
+  res.status(404).json({ 
+    message: 'Route not found',
+    requestedUrl: req.url,
+    method: req.method
+  });
 });
 
-// Error handling
+// Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something broke!', error: err.message });
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: err.message
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/shiv')
   .then(() => {
-    console.log('MongoDB connected successfully');
+    console.log('Connected to MongoDB');
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
+      console.log('Available routes:');
+      console.log('- GET /api/jobs');
+      console.log('- GET /api/jobs/test');
+      console.log('- GET /api/jobs/stats');
     });
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err);
   });
+
+module.exports = app;
