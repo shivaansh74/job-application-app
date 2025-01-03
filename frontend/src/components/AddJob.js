@@ -1,142 +1,178 @@
 // AddJob.js (Add Job Page)
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AddJob = () => {
-  const [title, setTitle] = useState('');
-  const [company, setCompany] = useState('');
-  const [status, setStatus] = useState('');
-  const [isFormValid, setIsFormValid] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    title: '',
+    company: '',
+    status: 'applied',
+    location: '',
+    salary: '',
+    notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!title || !company || !status) {
-      alert('Please fill out all fields.');
-      return;
-    }
-
-    // Create a job object
-    const newJob = { title, company, status };
+    setIsSubmitting(true);
 
     try {
-      // POST request to add job
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newJob),
+        body: JSON.stringify(formData),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        // Show success popup
-        setShowPopup(true);
-
-        // Redirect to the main job listings page after a short delay
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 3000); // Redirect after 3 seconds
-      } else {
-        alert('Failed to add job.');
+      if (!response.ok) {
+        throw new Error('Failed to add job');
       }
+
+      navigate('/');
     } catch (error) {
       console.error('Error adding job:', error);
-      alert('Failed to add job.');
+      alert('Failed to add job');
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const handleCancel = () => {
-    window.location.href = '/'; // Redirect to the job listings page
-  };
-
-  useEffect(() => {
-    if (title && company && status) {
-      setIsFormValid(true);
-    } else {
-      setIsFormValid(false);
-    }
-  }, [title, company, status]);
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold mb-4">Add a New Job</h1>
-      
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="title" className="block">Job Title</label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full p-2 border rounded"
-          />
+    <div className="container max-w-2xl mx-auto py-8 px-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Add New Job</h1>
+        <p className="text-gray-600 mt-2">Enter the details of your job application</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Job Title
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. Frontend Developer"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Company
+            </label>
+            <input
+              type="text"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. Google"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Location
+            </label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. Remote, New York"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Salary
+            </label>
+            <input
+              type="text"
+              name="salary"
+              value={formData.salary}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. $100,000/year"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <div className="relative">
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                required
+                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  formData.status === 'applied' ? 'bg-blue-50 text-blue-800' :
+                  formData.status === 'interviewed' ? 'bg-yellow-50 text-yellow-800' :
+                  formData.status === 'accepted' ? 'bg-green-50 text-green-800' :
+                  formData.status === 'rejected' ? 'bg-red-50 text-red-800' :
+                  ''
+                }`}
+              >
+                <option value="applied" className="bg-blue-50 text-blue-800">Applied</option>
+                <option value="interviewed" className="bg-yellow-50 text-yellow-800">Interviewed</option>
+                <option value="accepted" className="bg-green-50 text-green-800">Accepted</option>
+                <option value="rejected" className="bg-red-50 text-red-800">Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notes
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+              placeholder="Add any additional notes..."
+            />
+          </div>
         </div>
-        <div>
-          <label htmlFor="company" className="block">Company</label>
-          <input
-            type="text"
-            id="company"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            required
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div>
-          <label htmlFor="status" className="block">Status</label>
-          <select
-            id="status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            required
-            className="w-full p-2 border rounded"
-          >
-            <option value="">Select Status</option>
-            <option value="Applied" className="bg-blue-200 text-blue-800">Applied</option>
-            <option value="Interviewed" className="bg-blue-100 text-blue-700">Interviewed</option>
-            <option value="Accepted" className="bg-green-200 text-green-800">Accepted</option>
-            <option value="Rejected" className="bg-red-200 text-red-800">Rejected</option>
-          </select>
-        </div>
-        <div className="col-span-2">
+
+        <div className="flex gap-4 pt-4">
           <button
             type="submit"
-            disabled={!isFormValid}
-            className={`w-full py-2 rounded ${isFormValid ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-500'}`}
+            disabled={isSubmitting}
+            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Add Job
+            {isSubmitting ? 'Adding...' : 'Add Job'}
           </button>
-        </div>
-        <div className="col-span-2">
           <button
             type="button"
-            onClick={handleCancel}
-            className="w-full bg-gray-500 text-white py-2 rounded mt-2"
+            onClick={() => navigate('/')}
+            className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
           >
             Cancel
           </button>
         </div>
       </form>
-
-      {showPopup && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-semibold">Job Added Successfully!</h2>
-            <p className="mt-2">Your job has been added to the list.</p>
-            <button
-              onClick={() => setShowPopup(false)}
-              className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
