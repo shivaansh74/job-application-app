@@ -13,18 +13,19 @@ const AddJob = () => {
     status: 'applied',
     notes: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setLoading(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -46,7 +47,7 @@ const AddJob = () => {
       console.error('Error adding job:', error);
       alert('Failed to add job');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -160,10 +161,10 @@ const AddJob = () => {
         <div className="flex gap-4 pt-4">
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={loading}
             className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Adding...' : 'Add Job'}
+            {loading ? 'Adding...' : 'Add Job'}
           </button>
           <button
             type="button"
