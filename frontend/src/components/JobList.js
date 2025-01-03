@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API_URL from '../config/api';
 
 const JobList = () => {
   const [jobs, setJobs] = useState([]);
@@ -16,8 +17,8 @@ const JobList = () => {
         throw new Error('No authentication token found');
       }
 
-      console.log('Fetching from:', 'http://localhost:5000/api/jobs');
-      const response = await fetch('http://localhost:5000/api/jobs', {
+      console.log('Fetching from:', `${API_URL}/api/jobs`);
+      const response = await fetch(`${API_URL}/api/jobs`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

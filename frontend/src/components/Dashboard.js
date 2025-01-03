@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { format, subDays } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
+import API_URL from '../config/api';
 
 ChartJS.register(
   ArcElement,
@@ -44,9 +45,10 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/jobs/stats', {
+      const response = await fetch(`${API_URL}/api/jobs/stats`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 

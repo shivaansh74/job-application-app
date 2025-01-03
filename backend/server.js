@@ -7,9 +7,12 @@ require('dotenv').config();
 
 const app = express();
 
-// Detailed CORS configuration
+// Update CORS configuration to include your Vercel URL
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: [
+    'https://job-application-app-nine.vercel.app',
+    'http://localhost:3000'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
