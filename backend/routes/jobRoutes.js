@@ -153,17 +153,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // Delete a job
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const job = await JobApplication.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.userId
-    });
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
-    res.json({ message: 'Job deleted successfully' });
+    const jobId = req.params.id;
+    await JobApplication.findByIdAndDelete(jobId);
+    res.status(200).json({ message: 'Job deleted successfully' });
   } catch (error) {
-    console.error('Error deleting job:', error);
-    res.status(500).json({ message: 'Error deleting job', error: error.message });
+    res.status(500).json({ message: 'Error deleting job', error });
   }
 });
 
