@@ -1,159 +1,87 @@
 const express = require('express');
 const router = express.Router();
-const Job = require('../models/Job');
-const authMiddleware = require('../middleware/authMiddleware');
-const mongoose = require('mongoose');
-
-// Debug middleware for job routes
-router.use((req, res, next) => {
-  console.log('Job Route:', req.method, req.path);
-  next();
-});
 
 // Get all jobs
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const jobs = await Job.find({ user: req.user.id });
-    res.json(jobs);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+router.get('/', (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.user.userId;
+
+  db.query(
+    'SELECT * FROM jobs WHERE user_id = ? ORDER BY applied_date DESC',
+    [userId],
+    (error, results) => {
+      if (error) {
+        console.error('Error fetching jobs:', error);
+        return res.status(500).json({ message: 'Error fetching jobs' });
+      }
+      res.json(results);
+    }
+  );
 });
 
-// Get single job
-router.get('/:id', authMiddleware, async (req, res) => {
-  try {
-    console.log('Get job by ID:', req.params.id);
-    console.log('User ID:', req.user.id);
+// Add new job
+router.post('/', (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.user.userId;
+  const { company, position, status, applied_date, notes, salary } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid job ID format' });
+  console.log('Received job data:', req.body); // Debug log
+
+  db.query(
+    'INSERT INTO jobs (user_id, company, position, status, applied_date, notes, salary) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [userId, company, position, status, applied_date, notes, salary || null],
+    (error, results) => {
+      if (error) {
+        console.error('Error adding job:', error);
+        return res.status(500).json({ message: 'Error adding job' });
+      }
+      res.status(201).json({ 
+        message: 'Job added successfully',
+        jobId: results.insertId 
+      });
     }
-
-    const job = await Job.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
-
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
-
-    res.json(job);
-  } catch (error) {
-    console.error('Error getting job:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Create job
-router.post('/', authMiddleware, async (req, res) => {
-  try {
-    const job = new Job({
-      ...req.body,
-      user: req.user.id
-    });
-    const newJob = await job.save();
-    res.status(201).json(newJob);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+  );
 });
 
 // Update job
-router.put('/:id', authMiddleware, async (req, res) => {
-  try {
-    const job = await Job.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      req.body,
-      { new: true }
-    );
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
+router.put('/:id', (req, res) => {
+  const db = req.app.locals.db;
+  const jobId = req.params.id;
+  const userId = req.user.userId;
+  const { company, position, status, applied_date, notes, salary } = req.body;
+
+  console.log('Updating job with data:', req.body); // Debug log
+
+  db.query(
+    'UPDATE jobs SET company = ?, position = ?, status = ?, applied_date = ?, notes = ?, salary = ? WHERE id = ? AND user_id = ?',
+    [company, position, status, applied_date, notes, salary || null, jobId, userId],
+    (error, results) => {
+      if (error) {
+        console.error('Error updating job:', error);
+        return res.status(500).json({ message: 'Error updating job' });
+      }
+      res.json({ message: 'Job updated successfully' });
     }
-    res.json(job);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+  );
 });
 
 // Delete job
-router.delete('/:id', authMiddleware, async (req, res) => {
-  try {
-    const job = await Job.findOneAndDelete({
-      _id: req.params.id,
-      user: req.user.id
-    });
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
-    res.json({ message: 'Job deleted' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.delete('/:id', (req, res) => {
+  const db = req.app.locals.db;
+  const jobId = req.params.id;
+  const userId = req.user.userId;
 
-// Add this route to your existing jobRoutes.js
-router.get('/stats', authMiddleware, async (req, res) => {
-  try {
-    // Get total jobs
-    const total = await Job.countDocuments({ user: req.user.id });
-
-    // Get jobs by status
-    const byStatus = {
-      applied: await Job.countDocuments({ user: req.user.id, status: 'applied' }),
-      interviewed: await Job.countDocuments({ user: req.user.id, status: 'interviewed' }),
-      accepted: await Job.countDocuments({ user: req.user.id, status: 'accepted' }),
-      rejected: await Job.countDocuments({ user: req.user.id, status: 'rejected' })
-    };
-
-    // Calculate rates
-    const responseRate = total ? (byStatus.interviewed + byStatus.accepted + byStatus.rejected) / total : 0;
-    const successRate = total ? byStatus.accepted / total : 0;
-
-    // Get timeline data for the last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const timeline = await Job.aggregate([
-      {
-        $match: {
-          user: req.user.id,
-          createdAt: { $gte: thirtyDaysAgo }
-        }
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $project: {
-          date: '$_id',
-          count: 1,
-          _id: 0
-        }
-      },
-      {
-        $sort: { date: 1 }
+  db.query(
+    'DELETE FROM jobs WHERE id = ? AND user_id = ?',
+    [jobId, userId],
+    (error, results) => {
+      if (error) {
+        console.error('Error deleting job:', error);
+        return res.status(500).json({ message: 'Error deleting job' });
       }
-    ]);
-
-    res.json({
-      stats: {
-        total,
-        byStatus,
-        responseRate,
-        successRate
-      },
-      timeline
-    });
-
-  } catch (error) {
-    console.error('Error getting job stats:', error);
-    res.status(500).json({ message: 'Error fetching dashboard statistics' });
-  }
+      res.json({ message: 'Job deleted successfully' });
+    }
+  );
 });
 
 module.exports = router;

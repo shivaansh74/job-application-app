@@ -1,13 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import API_URL from '../config/api';
-import { getAuthToken } from '../utils/auth';
+import { Card, Button, message, Layout, Space, Typography, Row, Col, Tag, Tabs, Modal } from 'antd';
+import { LogoutOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import JobForm from './JobForm';
+import { API_BASE_URL } from '../config/config';
+import Dashboard from './Dashboard';
+
+const { Header, Content } = Layout;
+const { Title, Text } = Typography;
+const { confirm } = Modal;
+
+const statusColors = {
+  applied: '#1890ff',
+  interviewed: '#faad14',
+  accepted: '#52c41a',
+  rejected: '#ff4d4f'
+};
+
+const cardStyles = {
+  cardContainer: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    margin: '0 8px'
+  },
+  contentContainer: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  buttonContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '12px 24px',
+    borderTop: '1px solid #f0f0f0',
+    marginTop: 'auto'
+  },
+  editButton: {
+    border: '1px solid #1890ff',
+    color: '#1890ff',
+    background: 'transparent',
+    width: '45%'
+  },
+  deleteButton: {
+    border: '1px solid #ff4d4f',
+    color: '#ff4d4f',
+    background: 'transparent',
+    width: '45%'
+  }
+};
 
 const JobList = () => {
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
+  const [filterStatus, setFilterStatus] = useState(null);
+  const token = localStorage.getItem('token');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,224 +64,303 @@ const JobList = () => {
 
   const fetchJobs = async () => {
     try {
-      const token = getAuthToken();
-      
-      if (!token) {
-        console.log('No token found, redirecting to login');
-        navigate('/login');
-        return;
-      }
-
-      console.log('Fetching with token:', token);
-      
-      const response = await fetch(`${API_URL}/api/jobs`, {
-        method: 'GET',
+      const response = await fetch(`${API_BASE_URL}/api/jobs`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include'
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (response.status === 401) {
-        console.log('Token expired or invalid, redirecting to login');
-        navigate('/login');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
-      console.log('Received data:', data);
-      
-      if (Array.isArray(data)) {
-        setJobs(data);
-      } else {
-        console.error('Received non-array data:', data);
-        setJobs([]);
-      }
+      setJobs(data);
     } catch (error) {
       console.error('Error fetching jobs:', error);
-      setError('Failed to load jobs');
-      setJobs([]);
-    } finally {
-      setLoading(false);
+      message.error('Failed to fetch jobs');
     }
   };
 
-  const handleDeleteJob = async (id) => {
-    if (window.confirm('Are you sure you want to delete this job?')) {
-      try {
-        const token = getAuthToken();
-        await fetch(`${API_URL}/api/jobs/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        fetchJobs(); // Refresh the list
-      } catch (error) {
-        console.error('Error deleting job:', error);
-      }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  const showDeleteConfirm = (job) => {
+    confirm({
+      title: 'Are you sure you want to delete this job application?',
+      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      content: (
+        <div>
+          <p><strong>Company:</strong> {job.company}</p>
+          <p><strong>Position:</strong> {job.position}</p>
+        </div>
+      ),
+      okText: 'Yes, delete it',
+      okType: 'danger',
+      cancelText: 'No, keep it',
+      onOk() {
+        handleDelete(job.id);
+      },
+    });
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/jobs/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) throw new Error('Failed to delete');
+      message.success('Job application deleted successfully');
+      fetchJobs();
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      message.error('Failed to delete job application');
     }
   };
 
-  const getStatusCount = (status) => {
-    if (!Array.isArray(jobs)) return 0;
-    return jobs.filter(job => job.status === status).length;
-  };
+  const filteredJobs = filterStatus ? jobs.filter(job => job.status === filterStatus) : jobs;
 
-  const filteredJobs = statusFilter === 'all' 
-    ? jobs 
-    : (Array.isArray(jobs) ? jobs.filter(job => job.status === statusFilter) : []);
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'applied':
-        return 'bg-blue-100 text-blue-800';
-      case 'interviewed':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'accepted':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (loading) {
-    return <div className="text-center mt-8">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center mt-8 text-red-600">{error}</div>;
-  }
+  const StatusFilter = () => (
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+      <Row gutter={[16, 16]} justify="center">
+        <Col>
+          <Button
+            style={{
+              borderColor: '#000000',
+              backgroundColor: 'white',
+              color: '#000000',
+              borderRadius: '4px',
+              padding: '4px 15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              borderWidth: !filterStatus ? '2px' : '1px'
+            }}
+            onClick={() => setFilterStatus(null)}
+          >
+            All ({jobs.length})
+          </Button>
+        </Col>
+        {['applied', 'interviewed', 'accepted', 'rejected'].map(status => (
+          <Col key={status}>
+            <Button
+              style={{
+                borderColor: statusColors[status],
+                backgroundColor: filterStatus === status ? statusColors[status] : 'white',
+                color: filterStatus === status ? 'white' : statusColors[status],
+                borderRadius: '4px',
+                padding: '4px 15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onClick={() => setFilterStatus(filterStatus === status ? null : status)}
+            >
+              <div style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: statusColors[status]
+              }} />
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+              <Text style={{ marginLeft: 8 }}>
+                ({jobs.filter(job => job.status === status).length})
+              </Text>
+            </Button>
+          </Col>
+        ))}
+      </Row>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Job Applications</h1>
-        <Link
-          to="/add-job"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+    <Layout>
+      <Header style={{ 
+        background: '#fff', 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0 24px',
+        borderBottom: '1px solid #f0f0f0'
+      }}>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <Title level={2} style={{ margin: '16px 0' }}>
+            Job Application Tracker
+          </Title>
+        </div>
+        <Button 
+          type="primary"
+          danger
+          icon={<LogoutOutlined />} 
+          onClick={handleLogout}
+          style={{ 
+            position: 'absolute', 
+            right: 24,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          Add New Job
-        </Link>
-      </div>
-
-      <div className="flex justify-center gap-4 mb-6">
-        <button
-          onClick={() => setStatusFilter('all')}
-          className={`px-4 py-2 rounded-md transition-colors ${
-            statusFilter === 'all'
-              ? 'bg-gray-200 text-gray-800 font-medium'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          All {Array.isArray(jobs) && jobs.length > 0 ? `(${jobs.length})` : ''}
-        </button>
-        {['applied', 'interviewed', 'accepted', 'rejected'].map(status => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-4 py-2 rounded-md transition-colors ${
-              statusFilter === status
-                ? `bg-${status === 'applied' ? 'blue' : 
-                     status === 'interviewed' ? 'yellow' : 
-                     status === 'accepted' ? 'green' : 
-                     'red'}-200 text-${status === 'applied' ? 'blue' : 
-                     status === 'interviewed' ? 'yellow' : 
-                     status === 'accepted' ? 'green' : 
-                     'red'}-800 font-medium`
-                : `bg-${status === 'applied' ? 'blue' : 
-                     status === 'interviewed' ? 'yellow' : 
-                     status === 'accepted' ? 'green' : 
-                     'red'}-100 text-${status === 'applied' ? 'blue' : 
-                     status === 'interviewed' ? 'yellow' : 
-                     status === 'accepted' ? 'green' : 
-                     'red'}-600 hover:bg-${status === 'applied' ? 'blue' : 
-                     status === 'interviewed' ? 'yellow' : 
-                     status === 'accepted' ? 'green' : 
-                     'red'}-200`
-            }`}
+          Logout
+        </Button>
+      </Header>
+      
+      <Content style={{ padding: '24px', background: '#f0f2f5' }}>
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
+          <Tabs 
+            defaultActiveKey="dashboard"
+            centered
+            style={{ 
+              textAlign: 'center',
+              '& .ant-tabs-nav': {
+                marginBottom: '24px'
+              }
+            }}
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-            {getStatusCount(status) > 0 ? ` (${getStatusCount(status)})` : ''}
-          </button>
-        ))}
-      </div>
-
-      {filteredJobs.length === 0 ? (
-        <div className="text-center text-gray-500 mt-8">
-          No jobs found. {statusFilter === 'all' ? 'Add your first job application!' : 'Try a different filter.'}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredJobs.map((job) => {
-            console.log('Job ID:', job._id);
-            return (
-              <div
-                key={job._id}
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">{job.title}</h2>
-                    <p className="text-gray-600">{job.company}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
-                    {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                  </span>
-                </div>
-
-                {job.location && (
-                  <p className="text-gray-600 mb-2">
-                    <span className="font-medium">Location:</span> {job.location}
-                  </p>
-                )}
-                
-                {job.salary && (
-                  <p className="text-gray-600 mb-2">
-                    <span className="font-medium">Salary:</span> {job.salary}
-                  </p>
-                )}
-
-                {job.notes && (
-                  <p className="text-gray-600 mb-4">
-                    <span className="font-medium">Notes:</span> {job.notes}
-                  </p>
-                )}
-
-                <div className="border-t pt-4 mt-4 flex justify-between items-center">
-                  <div className="text-sm text-gray-500">
-                    Added: {new Date(job.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="space-x-3">
-                    <Link
-                      to={`/edit-job/${job._id}`}
-                      onClick={() => console.log('Clicking edit for job:', job._id)}
-                      className="text-blue-600 border border-blue-600 px-3 py-1 rounded-md hover:bg-blue-50"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteJob(job._id)}
-                      className="text-red-600 border border-red-600 px-3 py-1 rounded-md hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
+            <Tabs.TabPane tab="Dashboard" key="dashboard">
+              <Dashboard jobs={jobs} />
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="Applications" key="jobs">
+              <div style={{ 
+                marginBottom: 24, 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '0 8px'
+              }}>
+                <Text>Total Applications: {jobs.length}</Text>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />} 
+                  onClick={() => setIsModalVisible(true)}
+                >
+                  Add Job
+                </Button>
               </div>
-            );
-          })}
+
+              <StatusFilter />
+
+              <Row 
+                gutter={[24, 24]}
+                style={{ 
+                  margin: '0 -8px',
+                  padding: '0 16px'
+                }}
+              >
+                {filteredJobs.map(job => (
+                  <Col xs={24} sm={12} md={8} lg={6} key={job.id}>
+                    <Card
+                      hoverable
+                      style={cardStyles.cardContainer}
+                      bodyStyle={cardStyles.contentContainer}
+                    >
+                      <div style={{ textAlign: 'center' }}>
+                        <Title level={4} style={{ marginBottom: 16 }}>{job.company}</Title>
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                          <Text strong style={{ fontSize: '16px' }}>{job.position}</Text>
+                          
+                          <Tag color={statusColors[job.status]} style={{ margin: '8px 0' }}>
+                            {job.status.toUpperCase()}
+                          </Tag>
+                          
+                          <Text type="secondary">
+                            Applied: {new Date(job.applied_date).toLocaleDateString()}
+                          </Text>
+                          
+                          {job.salary && (
+                            <Text type="secondary" strong style={{ color: '#52c41a' }}>
+                              ${Number(job.salary).toLocaleString()}
+                            </Text>
+                          )}
+                          
+                          {job.notes && (
+                            <div style={{ marginTop: 8 }}>
+                              <Text type="secondary" strong>Notes:</Text>
+                              <div style={{ 
+                                background: '#f5f5f5', 
+                                padding: '8px', 
+                                borderRadius: '4px',
+                                marginTop: '4px',
+                                textAlign: 'left'
+                              }}>
+                                <Text type="secondary">{job.notes}</Text>
+                              </div>
+                            </div>
+                          )}
+                        </Space>
+                      </div>
+
+                      <div style={cardStyles.buttonContainer}>
+                        <Button
+                          type="primary"
+                          icon={<EditOutlined />}
+                          style={cardStyles.editButton}
+                          onClick={() => {
+                            setEditingJob(job);
+                            setIsModalVisible(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          danger
+                          icon={<DeleteOutlined />}
+                          style={cardStyles.deleteButton}
+                          onClick={() => showDeleteConfirm(job)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+
+              <JobForm
+                visible={isModalVisible}
+                onCancel={() => {
+                  setIsModalVisible(false);
+                  setEditingJob(null);
+                }}
+                onSubmit={async (values) => {
+                  try {
+                    const url = editingJob 
+                      ? `${API_BASE_URL}/api/jobs/${editingJob.id}`
+                      : `${API_BASE_URL}/api/jobs`;
+                    
+                    const method = editingJob ? 'PUT' : 'POST';
+                    
+                    const response = await fetch(url, {
+                      method,
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify(values)
+                    });
+
+                    if (!response.ok) throw new Error('Failed to save');
+                    
+                    message.success(`Job ${editingJob ? 'updated' : 'added'} successfully`);
+                    setIsModalVisible(false);
+                    setEditingJob(null);
+                    fetchJobs();
+                  } catch (error) {
+                    console.error('Error saving job:', error);
+                    message.error('Failed to save job');
+                  }
+                }}
+                initialValues={editingJob}
+              />
+            </Tabs.TabPane>
+          </Tabs>
         </div>
-      )}
-    </div>
+      </Content>
+    </Layout>
   );
 };
 

@@ -1,271 +1,193 @@
-import React, { useState, useEffect } from 'react';
-import { Pie, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title
-} from 'chart.js';
-import { format } from 'date-fns';
-import { useTheme } from '../contexts/ThemeContext';
-import API_URL from '../config/api';
+import React from 'react';
+import { Row, Col, Card, Statistic, Progress } from 'antd';
+import { 
+  PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Cell
+} from 'recharts';
 
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title
-);
+const statusColors = {
+  applied: '#1890ff',
+  interviewed: '#faad14',
+  accepted: '#52c41a',
+  rejected: '#ff4d4f'
+};
 
-const Dashboard = () => {
-  const { darkMode } = useTheme();
-  const [stats, setStats] = useState({
-    total: 0,
-    byStatus: {
-      applied: 0,
-      interviewed: 0,
-      accepted: 0,
-      rejected: 0
-    },
-    responseRate: 0,
-    successRate: 0
-  });
-  const [timelineData, setTimelineData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+const Dashboard = ({ jobs }) => {
+  // Calculate statistics
+  const totalApplications = jobs.length;
+  const statusCounts = jobs.reduce((acc, job) => {
+    acc[job.status] = (acc[job.status] || 0) + 1;
+    return acc;
+  }, {});
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  // Prepare data for pie chart
+  const pieData = Object.entries(statusCounts).map(([status, count]) => ({
+    name: status.charAt(0).toUpperCase() + status.slice(1),
+    value: count
+  }));
 
-  const fetchDashboardData = async () => {
-    try {
-      const token = localStorage.getItem('jobTrackerToken');
-      const response = await fetch(`${API_URL}/api/jobs/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  // Updated bar chart data preparation - group by date
+  const dateData = jobs.reduce((acc, job) => {
+    const date = new Date(job.applied_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+    acc[date] = (acc[date] || 0) + 1;
+    return acc;
+  }, {});
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
-      }
-
-      const data = await response.json();
-      setStats(data.stats);
-      setTimelineData(data.timeline);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const pieChartData = {
-    labels: Object.entries(stats.byStatus)
-      .filter(([_, value]) => value > 0)
-      .map(([status]) => status.charAt(0).toUpperCase() + status.slice(1)),
-    datasets: [
-      {
-        data: Object.entries(stats.byStatus)
-          .filter(([_, value]) => value > 0)
-          .map(([_, value]) => value),
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.8)', // blue-500 for applied
-          'rgba(234, 179, 8, 0.8)',  // yellow-500 for interviewed
-          'rgba(34, 197, 94, 0.8)',  // green-500 for accepted
-          'rgba(239, 68, 68, 0.8)',  // red-500 for rejected
-        ],
-        borderColor: [
-          'rgba(59, 130, 246, 1)',
-          'rgba(234, 179, 8, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(239, 68, 68, 1)',
-        ],
-        borderWidth: 2,
-      },
-    ],
-  };
-
-  const timelineChartData = {
-    labels: timelineData.map(d => format(new Date(d.date), 'MMM d')),
-    datasets: [
-      {
-        label: 'Applications',
-        data: timelineData.map(d => d.count),
-        borderColor: 'rgba(59, 130, 246, 1)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4,
-        fill: true,
-        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
-    ],
-  };
-
-  const pieChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          padding: 20,
-          color: darkMode ? '#f3f4f6' : '#1f2937',
-          font: {
-            size: 12,
-            weight: 'bold'
-          }
-        }
-      },
-      tooltip: {
-        backgroundColor: darkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-        titleColor: darkMode ? '#f3f4f6' : '#1f2937',
-        bodyColor: darkMode ? '#f3f4f6' : '#1f2937',
-        padding: 12,
-        borderColor: darkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.3)',
-        borderWidth: 1,
-      }
-    },
-    scales: {
-      x: {
-        display: false
-      },
-      y: {
-        display: false
-      }
-    }
-  };
-
-  const timelineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        backgroundColor: darkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-        titleColor: darkMode ? '#f3f4f6' : '#1f2937',
-        bodyColor: darkMode ? '#f3f4f6' : '#1f2937',
-        padding: 12,
-        borderColor: darkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.3)',
-        borderWidth: 1,
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: darkMode ? 'rgba(75, 85, 99, 0.2)' : 'rgba(209, 213, 219, 0.2)',
-        },
-        ticks: {
-          stepSize: 1,
-          color: darkMode ? '#f3f4f6' : '#1f2937',
-          font: {
-            size: 11
-          }
-        }
-      },
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: darkMode ? '#f3f4f6' : '#1f2937',
-          font: {
-            size: 11
-          }
-        }
-      }
-    }
-  };
-
-  if (isLoading) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-red-500 bg-red-100 dark:bg-red-900/20 px-6 py-4 rounded-lg">
-        {error}
-      </div>
-    </div>
-  );
+  const barData = Object.entries(dateData)
+    .sort((a, b) => new Date(a[0]) - new Date(b[0])) // Sort by date
+    .map(([date, count]) => ({
+      date,
+      applications: count
+    }));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl shadow-lg p-6 transition-all duration-300 hover:bg-blue-100 dark:hover:bg-blue-900/30">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            Total Applications
-          </h3>
-          <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-            {stats.total}
-          </p>
-        </div>
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl shadow-lg p-6 transition-all duration-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/30">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            Response Rate
-          </h3>
-          <p className="text-4xl font-bold text-yellow-600 dark:text-yellow-400">
-            {(stats.responseRate * 100).toFixed(1)}%
-          </p>
-        </div>
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl shadow-lg p-6 transition-all duration-300 hover:bg-green-100 dark:hover:bg-green-900/30">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            Success Rate
-          </h3>
-          <p className="text-4xl font-bold text-green-600 dark:text-green-400">
-            {(stats.successRate * 100).toFixed(1)}%
-          </p>
-        </div>
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl shadow-lg p-6 transition-all duration-300 hover:bg-red-100 dark:hover:bg-red-900/30">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            Rejection Rate
-          </h3>
-          <p className="text-4xl font-bold text-red-600 dark:text-red-400">
-            {stats.total ? ((stats.byStatus.rejected / stats.total) * 100).toFixed(1) : '0.0'}%
-          </p>
-        </div>
-      </div>
+    <div style={{ padding: '24px' }}>
+      <Row gutter={[16, 16]}>
+        {/* Status Progress Bars - Moved to top */}
+        <Col xs={24}>
+          <Card title="Application Status Breakdown">
+            <Row gutter={[16, 16]}>
+              {Object.entries(statusCounts).map(([status, count]) => (
+                <Col xs={24} sm={12} md={6} key={status}>
+                  <div style={{ padding: '0 16px' }}>
+                    <Progress
+                      percent={Math.round((count / totalApplications) * 100)}
+                      strokeColor={statusColors[status]}
+                      format={() => `${count} ${status}`}
+                    />
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        </Col>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-6">
-            Application Status Distribution
-          </h3>
-          <div className="h-80">
-            <Pie data={pieChartData} options={pieChartOptions} />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-6">
-            Application Timeline
-          </h3>
-          <div className="h-80">
-            <Line data={timelineChartData} options={timelineChartOptions} />
-          </div>
-        </div>
-      </div>
+        {/* Statistics Cards */}
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Total Applications"
+              value={totalApplications}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Interview Rate"
+              value={((statusCounts.interviewed || 0) / totalApplications * 100).toFixed(1)}
+              suffix="%"
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Acceptance Rate"
+              value={((statusCounts.accepted || 0) / totalApplications * 100).toFixed(1)}
+              suffix="%"
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Rejection Rate"
+              value={((statusCounts.rejected || 0) / totalApplications * 100).toFixed(1)}
+              suffix="%"
+              valueStyle={{ color: '#ff4d4f' }}
+            />
+          </Card>
+        </Col>
+
+        {/* Charts */}
+        <Col xs={24} md={12}>
+          <Card title="Application Status">
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({
+                      cx,
+                      cy,
+                      midAngle,
+                      innerRadius,
+                      outerRadius,
+                      value,
+                      name
+                    }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = 25 + innerRadius + (outerRadius - innerRadius);
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill={statusColors[name.toLowerCase()]}
+                          textAnchor={x > cx ? 'start' : 'end'}
+                          dominantBaseline="central"
+                        >
+                          {`${name} (${value})`}
+                        </text>
+                      );
+                    }}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={statusColors[entry.name.toLowerCase()]} 
+                      />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card title="Applications by Date">
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date"
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis 
+                    tickCount={5}
+                    allowDecimals={false}
+                    domain={[0, 'dataMax + 1']}
+                  />
+                  <Tooltip />
+                  <Bar 
+                    dataKey="applications" 
+                    fill="#1890ff"
+                    barSize={30}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };

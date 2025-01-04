@@ -13,7 +13,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@ant-design/icons": "^5.5.2",
     "@heroicons/react": "^2.2.0",
+    "antd": "^5.22.7",
     "axios": "^1.7.9",
     "chart.js": "^4.4.1",
     "cors": "^2.8.5",
@@ -21,12 +23,14 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "framer-motion": "^11.15.0",
+    "moment": "^2.30.1",
     "mongoose": "^8.9.2",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.1.1",
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "recharts": "^2.15.0"
   },
   "browserslist": {
     "production": [
