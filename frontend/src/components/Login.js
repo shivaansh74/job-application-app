@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API_URL from '../config/api';
+import { setAuthToken } from '../utils/auth';
 
 const Login = ({ setIsAuthenticated, setCurrentUser }) => {
   const navigate = useNavigate();
@@ -20,8 +21,8 @@ const Login = ({ setIsAuthenticated, setCurrentUser }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
+    setError('');
 
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -38,14 +39,16 @@ const Login = ({ setIsAuthenticated, setCurrentUser }) => {
         throw new Error(data.message || 'Login failed');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setIsAuthenticated(true);
-      setCurrentUser(data.user);
+      if (!data.token) {
+        throw new Error('No token received from server');
+      }
+
+      console.log('Login successful, setting token');
+      setAuthToken(data.token);
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
-      setError(error.message || 'Login failed. Please check your credentials.');
+      setError(error.message || 'Failed to login. Please try again.');
     } finally {
       setIsLoading(false);
     }
