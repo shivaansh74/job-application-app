@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../config/db');
+const pool = require('../config/db');
 
 router.post('/register', async (req, res) => {
   const db = req.app.locals.db;
@@ -55,50 +55,46 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
+  console.log('Login request received:', req.body);
   try {
-    console.log('Login request received:', req.body); // Debug log
-
     const { username, password } = req.body;
-    const db = req.app.locals.db;
 
-    // Query the database
-    db.query(
-      'SELECT * FROM users WHERE username = ?',
-      [username],
-      (err, results) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({
-            success: false,
-            message: 'Database error'
-          });
-        }
+    // Use the pool.query instead of db.query
+    const [users] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+    const user = users[0];
 
-        console.log('Query results:', results); // Debug log
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid username or password' 
+      });
+    }
 
-        if (results.length > 0) {
-          // For now, accept any password (you should use proper password verification)
-          res.json({
-            success: true,
-            token: 'test-token',
-            user: {
-              id: results[0].id,
-              username: results[0].username
-            }
-          });
-        } else {
-          res.status(401).json({
-            success: false,
-            message: 'Invalid credentials'
-          });
-        }
-      }
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid username or password' 
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
     );
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      token
+    });
+
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during login' 
     });
   }
 });
