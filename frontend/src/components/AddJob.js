@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_URL from '../config/api';
 import { getAuthToken } from '../utils/auth';
+import { api } from '../services/api';
 
 const AddJob = () => {
   const navigate = useNavigate();
@@ -47,31 +48,18 @@ const AddJob = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const handleSubmit = async (values) => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/jobs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add job');
-      }
-
-      navigate('/');
+        const response = await api.post('/api/jobs', {
+            company: values.company,
+            position: values.position,
+            status: values.status,
+            jobType: values.jobType,
+            location: values.location
+        });
+        // Handle response
     } catch (error) {
-      console.error('Error adding job:', error);
-      alert('Failed to add job. Please try again.');
-    } finally {
-      setLoading(false);
+        console.error('Error adding job:', error);
     }
   };
 

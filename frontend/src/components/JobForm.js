@@ -5,58 +5,56 @@ import moment from 'moment';
 const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
   const [form] = Form.useForm();
 
-  React.useEffect(() => {
-    if (visible) {
-      form.resetFields();
-      const formValues = {
-        ...initialValues,
-        applied_date: initialValues?.applied_date ? moment(initialValues.applied_date) : moment(),
-        salary: initialValues?.salary ? parseInt(initialValues.salary, 10) : null
-      };
-      console.log('Setting initial values:', formValues);
-      form.setFieldsValue(formValues);
-    }
-  }, [visible, initialValues, form]);
+  // Get current date in user's timezone
+  const today = moment().startOf('day');
 
-  const handleSubmit = async (values) => {
-    console.log('Raw form values:', values);
-    
-    const formattedValues = {
+  // Reset form when modal opens
+  const handleOpen = () => {
+    form.resetFields();
+    if (initialValues) {
+      form.setFieldsValue({
+        ...initialValues,
+        applied_date: moment(initialValues.applied_date),
+        salary: initialValues.salary ? `$${initialValues.salary}` : '$'
+      });
+    } else {
+      // Set default values for new job
+      form.setFieldsValue({
+        applied_date: today,
+        status: 'applied',
+        salary: '$'
+      });
+    }
+  };
+
+  const handleSubmit = (values) => {
+    // Remove $ from salary and convert to number
+    const cleanedValues = {
       ...values,
-      applied_date: values.applied_date.format('YYYY-MM-DD'),
-      salary: values.salary ? parseInt(values.salary, 10) : null
+      salary: values.salary ? Number(values.salary.replace(/[^0-9]/g, '')) : null
     };
-    
-    console.log('Submitting values:', formattedValues);
-    onSubmit(formattedValues);
+    onSubmit(cleanedValues);
   };
 
   return (
     <Modal
-      title={initialValues ? "Edit Job" : "Add Job"}
+      title={initialValues ? "Edit Job Application" : "Add New Job Application"}
       open={visible}
       onCancel={onCancel}
-      okText="Save"
-      onOk={() => {
-        form.validateFields()
-          .then(handleSubmit)
-          .catch(info => {
-            console.error('Validation failed:', info);
-          });
+      onOk={() => form.submit()}
+      afterOpenChange={(visible) => {
+        if (visible) handleOpen();
       }}
     >
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ 
-          status: 'applied',
-          applied_date: moment()
-        }}
+        onFinish={handleSubmit}
       >
         <Form.Item
           name="company"
           label="Company"
-          rules={[{ required: true, message: 'Please enter company name' }]}
+          rules={[{ required: true, message: 'Please enter the company name' }]}
         >
           <Input />
         </Form.Item>
@@ -64,7 +62,7 @@ const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
         <Form.Item
           name="position"
           label="Position"
-          rules={[{ required: true, message: 'Please enter position' }]}
+          rules={[{ required: true, message: 'Please enter the position' }]}
         >
           <Input />
         </Form.Item>
@@ -73,19 +71,17 @@ const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
           name="salary"
           label="Salary"
         >
-          <InputNumber
-            style={{ width: '100%' }}
-            formatter={value => (value ? `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '')}
-            parser={value => {
-              const parsed = value.replace(/\$\s?|(,*)/g, '');
-              console.log('Parsed salary:', parsed);
-              return parsed;
-            }}
-            min={0}
-            step={1000}
-            placeholder="Enter salary amount"
-            onChange={(value) => {
-              console.log('Salary changed:', value);
+          <Input 
+            onChange={(e) => {
+              let value = e.target.value;
+              // Keep only numbers and $
+              value = value.replace(/[^0-9$]/g, '');
+              // Ensure $ is always at the start
+              if (!value.startsWith('$')) {
+                value = '$' + value;
+              }
+              // Update form value
+              form.setFieldsValue({ salary: value });
             }}
           />
         </Form.Item>
@@ -93,7 +89,7 @@ const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
         <Form.Item
           name="status"
           label="Status"
-          rules={[{ required: true, message: 'Please select status' }]}
+          rules={[{ required: true, message: 'Please select the status' }]}
         >
           <Select>
             <Select.Option value="applied">Applied</Select.Option>
@@ -106,7 +102,7 @@ const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
         <Form.Item
           name="applied_date"
           label="Applied Date"
-          rules={[{ required: true, message: 'Please select date' }]}
+          rules={[{ required: true, message: 'Please select the applied date' }]}
         >
           <DatePicker style={{ width: '100%' }} />
         </Form.Item>

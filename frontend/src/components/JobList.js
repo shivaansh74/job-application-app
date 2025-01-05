@@ -3,12 +3,14 @@ import { Card, Button, message, Layout, Space, Typography, Row, Col, Tag, Tabs, 
 import { LogoutOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import JobForm from './JobForm';
-import { API_BASE_URL } from '../config/config';
+import { api } from '../services/api';
 import Dashboard from './Dashboard';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 const { confirm } = Modal;
+
+const API_BASE_URL = 'https://job-application-app-y28m.onrender.com';
 
 const statusColors = {
   applied: '#1890ff',
@@ -58,27 +60,19 @@ const JobList = () => {
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
   const fetchJobs = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/jobs`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch');
-      const data = await response.json();
-      setJobs(data);
+      const response = await api.get('/api/jobs');
+      setJobs(response.data);
     } catch (error) {
       console.error('Error fetching jobs:', error);
       message.error('Failed to fetch jobs');
     }
   };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -212,26 +206,11 @@ const JobList = () => {
       <Content style={{ padding: '24px', background: '#f0f2f5' }}>
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
           <Tabs 
-            defaultActiveKey="dashboard"
+            defaultActiveKey="applications"
             centered
-            style={{ 
-              textAlign: 'center',
-              '& .ant-tabs-nav': {
-                marginBottom: '24px'
-              }
-            }}
           >
-            <Tabs.TabPane tab="Dashboard" key="dashboard">
-              <Dashboard jobs={jobs} />
-            </Tabs.TabPane>
-            <Tabs.TabPane tab="Applications" key="jobs">
-              <div style={{ 
-                marginBottom: 24, 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '0 8px'
-              }}>
+            <Tabs.TabPane tab="Applications" key="applications">
+              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between' }}>
                 <Text>Total Applications: {jobs.length}</Text>
                 <Button 
                   type="primary" 
@@ -328,22 +307,11 @@ const JobList = () => {
                 }}
                 onSubmit={async (values) => {
                   try {
-                    const url = editingJob 
-                      ? `${API_BASE_URL}/api/jobs/${editingJob.id}`
-                      : `${API_BASE_URL}/api/jobs`;
-                    
-                    const method = editingJob ? 'PUT' : 'POST';
-                    
-                    const response = await fetch(url, {
-                      method,
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify(values)
-                    });
-
-                    if (!response.ok) throw new Error('Failed to save');
+                    if (editingJob) {
+                      await api.put(`/api/jobs/${editingJob.id}`, values);
+                    } else {
+                      await api.post('/api/jobs', values);
+                    }
                     
                     message.success(`Job ${editingJob ? 'updated' : 'added'} successfully`);
                     setIsModalVisible(false);
@@ -356,6 +324,9 @@ const JobList = () => {
                 }}
                 initialValues={editingJob}
               />
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="Dashboard" key="dashboard">
+              <Dashboard jobs={jobs} />
             </Tabs.TabPane>
           </Tabs>
         </div>

@@ -3,34 +3,34 @@ import { Form, Input, Button, Card, message, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { API_BASE_URL } from '../config/config';
+import { api } from '../services/api';
 
 const { Title } = Typography;
 
 const Login = () => {
   const navigate = useNavigate();
 
-  const onFinish = async (values) => {
+  const handleLogin = async (values) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
+      console.log('Attempting login with:', values);
+
+      const response = await api.post('/api/auth/login', {
+        username: values.username,
+        password: values.password
       });
 
-      const data = await response.json();
+      console.log('Login response:', response.data);
 
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
         message.success('Login successful!');
-        navigate('/');
+        navigate('/jobs');
       } else {
-        message.error(data.message || 'Login failed');
+        message.error('Login failed - no token received');
       }
     } catch (error) {
       console.error('Login error:', error);
-      message.error('An error occurred during login');
+      message.error(error.response?.data?.message || 'Login failed');
     }
   };
 
@@ -51,7 +51,7 @@ const Login = () => {
       <Card style={{ width: '100%', maxWidth: '400px' }}>
         <Form
           name="login"
-          onFinish={onFinish}
+          onFinish={handleLogin}
           layout="vertical"
           size="large"
         >

@@ -3,6 +3,7 @@ import { Form, Input, Button, Card, message, Typography } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { API_BASE_URL } from '../config/config';
+import { api } from '../services/api';
 
 const { Title } = Typography;
 
@@ -10,7 +11,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
-  const onFinish = async (values) => {
+  const handleRegister = async (values) => {
     try {
       // Check if passwords match
       if (values.password !== values.confirmPassword) {
@@ -18,29 +19,30 @@ const Register = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: values.username,
-          email: values.email,
-          password: values.password
-        }),
+      const response = await api.post('/api/auth/register', {
+        username: values.username,
+        email: values.email,
+        password: values.password
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        message.success('Registration successful! Please log in.');
+      if (response.data.success) {
+        message.success({
+          content: 'User registered successfully!',
+          icon: '✅'
+        });
         navigate('/login');
       } else {
-        message.error(data.message || 'Registration failed');
+        message.error({
+          content: response.data.message || 'Registration failed',
+          icon: '❌'
+        });
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      message.error('An error occurred during registration');
+      console.error('Register error:', error);
+      message.error({
+        content: error.response?.data?.message || 'Registration failed',
+        icon: '❌'
+      });
     }
   };
 
@@ -62,7 +64,7 @@ const Register = () => {
         <Form
           form={form}
           name="register"
-          onFinish={onFinish}
+          onFinish={handleRegister}
           layout="vertical"
           size="large"
         >
