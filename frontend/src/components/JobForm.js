@@ -5,12 +5,25 @@ import moment from 'moment';
 const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
   const [form] = Form.useForm();
 
+  const formatSalary = (value) => {
+    // Remove all non-digits
+    const numbers = value.replace(/[^0-9]/g, '');
+    
+    // Add commas for thousands
+    const formatted = numbers.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    // Add dollar sign
+    return numbers ? `$${formatted}` : '$';
+  };
+
   const handleSubmit = (values) => {
-    // Format the date and salary before submitting
     const formattedValues = {
       ...values,
       applied_date: values.applied_date.format('YYYY-MM-DD'),
-      salary: values.salary ? values.salary.replace(/[^0-9]/g, '') : null
+      // Remove formatting from salary before submitting
+      salary: values.salary ? values.salary.replace(/[^0-9]/g, '') : null,
+      // Ensure status is included
+      status: values.status || 'applied'
     };
     onSubmit(formattedValues);
   };
@@ -22,7 +35,8 @@ const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
       form.setFieldsValue({
         ...initialValues,
         applied_date: moment(initialValues.applied_date),
-        salary: initialValues.salary ? `$${initialValues.salary}` : '$'
+        salary: initialValues.salary ? formatSalary(initialValues.salary.toString()) : '$',
+        status: initialValues.status || 'applied'
       });
     } else {
       form.setFieldsValue({
@@ -70,15 +84,8 @@ const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
         >
           <Input 
             onChange={(e) => {
-              let value = e.target.value;
-              // Keep only numbers and $
-              value = value.replace(/[^0-9$]/g, '');
-              // Ensure $ is always at the start
-              if (!value.startsWith('$')) {
-                value = '$' + value;
-              }
-              // Update form value
-              form.setFieldsValue({ salary: value });
+              const formatted = formatSalary(e.target.value);
+              form.setFieldsValue({ salary: formatted });
             }}
           />
         </Form.Item>
