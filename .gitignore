@@ -1,1 +1,26 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Environment variables
+.env
+/backend/.env
+/frontend/.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+/build
+/dist
+
+# IDE files
+.idea
+.vscode
+*.swp
+*swo
+
+
 node_modules
