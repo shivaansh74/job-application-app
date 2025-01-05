@@ -1,87 +1,85 @@
 const express = require('express');
 const router = express.Router();
+const pool = require('../config/db');
 
 // Get all jobs
-router.get('/', (req, res) => {
-  const db = req.app.locals.db;
-  const userId = req.user.userId;
-
-  db.query(
-    'SELECT * FROM jobs WHERE user_id = ? ORDER BY applied_date DESC',
-    [userId],
-    (error, results) => {
-      if (error) {
+router.get('/', async (req, res) => {
+    try {
+        console.log('Fetching jobs...');
+        const [rows] = await pool.query('SELECT * FROM jobs ORDER BY applied_date DESC');
+        console.log('Jobs fetched:', rows.length);
+        res.json(rows);
+    } catch (error) {
         console.error('Error fetching jobs:', error);
-        return res.status(500).json({ message: 'Error fetching jobs' });
-      }
-      res.json(results);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching jobs',
+            error: error.message 
+        });
     }
-  );
 });
 
-// Add new job
-router.post('/', (req, res) => {
-  const db = req.app.locals.db;
-  const userId = req.user.userId;
-  const { company, position, status, applied_date, notes, salary } = req.body;
-
-  console.log('Received job data:', req.body); // Debug log
-
-  db.query(
-    'INSERT INTO jobs (user_id, company, position, status, applied_date, notes, salary) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [userId, company, position, status, applied_date, notes, salary || null],
-    (error, results) => {
-      if (error) {
+// Add job
+router.post('/', async (req, res) => {
+    try {
+        const { company, position, status, applied_date, salary, notes } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO jobs (company, position, status, applied_date, salary, notes) VALUES (?, ?, ?, ?, ?, ?)',
+            [company, position, status, applied_date, salary, notes]
+        );
+        res.json({ 
+            success: true, 
+            message: 'Job added successfully',
+            jobId: result.insertId 
+        });
+    } catch (error) {
         console.error('Error adding job:', error);
-        return res.status(500).json({ message: 'Error adding job' });
-      }
-      res.status(201).json({ 
-        message: 'Job added successfully',
-        jobId: results.insertId 
-      });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error adding job',
+            error: error.message 
+        });
     }
-  );
 });
 
 // Update job
-router.put('/:id', (req, res) => {
-  const db = req.app.locals.db;
-  const jobId = req.params.id;
-  const userId = req.user.userId;
-  const { company, position, status, applied_date, notes, salary } = req.body;
-
-  console.log('Updating job with data:', req.body); // Debug log
-
-  db.query(
-    'UPDATE jobs SET company = ?, position = ?, status = ?, applied_date = ?, notes = ?, salary = ? WHERE id = ? AND user_id = ?',
-    [company, position, status, applied_date, notes, salary || null, jobId, userId],
-    (error, results) => {
-      if (error) {
+router.put('/:id', async (req, res) => {
+    try {
+        const { company, position, status, applied_date, salary, notes } = req.body;
+        const [result] = await pool.query(
+            'UPDATE jobs SET company=?, position=?, status=?, applied_date=?, salary=?, notes=? WHERE id=?',
+            [company, position, status, applied_date, salary, notes, req.params.id]
+        );
+        res.json({ 
+            success: true, 
+            message: 'Job updated successfully' 
+        });
+    } catch (error) {
         console.error('Error updating job:', error);
-        return res.status(500).json({ message: 'Error updating job' });
-      }
-      res.json({ message: 'Job updated successfully' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error updating job',
+            error: error.message 
+        });
     }
-  );
 });
 
 // Delete job
-router.delete('/:id', (req, res) => {
-  const db = req.app.locals.db;
-  const jobId = req.params.id;
-  const userId = req.user.userId;
-
-  db.query(
-    'DELETE FROM jobs WHERE id = ? AND user_id = ?',
-    [jobId, userId],
-    (error, results) => {
-      if (error) {
+router.delete('/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM jobs WHERE id = ?', [req.params.id]);
+        res.json({ 
+            success: true, 
+            message: 'Job deleted successfully' 
+        });
+    } catch (error) {
         console.error('Error deleting job:', error);
-        return res.status(500).json({ message: 'Error deleting job' });
-      }
-      res.json({ message: 'Job deleted successfully' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error deleting job',
+            error: error.message 
+        });
     }
-  );
 });
 
 module.exports = router;
