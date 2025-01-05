@@ -8,27 +8,37 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
-app.get('/health', async (req, res) => {
-    try {
-        await db.query('SELECT 1');
-        res.json({ status: 'healthy', message: 'Database connection is active' });
-    } catch (error) {
-        res.status(500).json({ status: 'unhealthy', message: 'Database connection failed' });
-    }
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const jobRoutes = require('./routes/jobRoutes');
+
+// Mount routes
+app.use('/api/auth', authRoutes);
+app.use('/api/jobs', jobRoutes);
+
+// Test route to verify server is working
+app.get('/', (req, res) => {
+    res.json({ message: 'Server is running' });
 });
 
-// Error handling middleware
+// Debug route to see if auth routes are mounted
+app.get('/api/auth/test', (req, res) => {
+    res.json({ message: 'Auth routes are mounted' });
+});
+
+// Error handling
 app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({ 
-        success: false, 
-        message: 'Server error',
-        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-    });
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something broke!' });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log('Available routes:');
+    console.log('- POST /api/auth/login');
+    console.log('- POST /api/auth/register');
+    console.log('- GET /api/jobs');
 });
+
+module.exports = app;

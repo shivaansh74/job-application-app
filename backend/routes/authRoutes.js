@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const db = require('../config/db');
 
 router.post('/register', async (req, res) => {
   const db = req.app.locals.db;
