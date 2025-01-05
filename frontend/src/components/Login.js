@@ -76,14 +76,18 @@ const Login = () => {
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" block>
+            <Button type="primary" htmlType="submit" style={{ width: '100%', marginBottom: '12px' }}>
               Log in
             </Button>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ marginBottom: '8px' }}>
+                Don't have an account? <Link to="/register">Register here</Link>
+              </div>
+              <div>
+                <Link to="/forgot-password" style={{ color: '#ff4d4f' }}>Forgot Password?</Link>
+              </div>
+            </div>
           </Form.Item>
-
-          <div style={{ textAlign: 'center' }}>
-            Don't have an account? <Link to="/register">Register now!</Link>
-          </div>
         </Form>
       </Card>
     </div>
