@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import Register from './components/Register';
 import JobList from './components/JobList';
+import ForgotPassword from './components/ForgotPassword';
 import 'antd/dist/reset.css';
 
 // Protected Route component
@@ -27,21 +28,16 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route 
-            path="/jobs" 
-            element={
-              <ProtectedRoute>
-                <JobList />
-              </ProtectedRoute>
-            } 
-          />
           <Route 
             path="/" 
-            element={<PrivateRoute>
-              <JobList />
-            </PrivateRoute>} 
+            element={isAuthenticated() ? <Navigate to="/jobs" /> : <Navigate to="/login" />} 
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route 
+            path="/jobs" 
+            element={isAuthenticated() ? <JobList /> : <Navigate to="/login" />} 
           />
         </Routes>
       </div>

@@ -1,21 +1,36 @@
 import axios from 'axios';
 
-const API_URL = 'https://job-application-app-y28m.onrender.com';
-
 const api = axios.create({
-    baseURL: API_URL,
+    baseURL: process.env.REACT_APP_API_URL || 'https://job-application-app-y28m.onrender.com',
     headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
     }
 });
 
-api.interceptors.request.use(request => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        request.headers.Authorization = `Bearer ${token}`;
+// Add a request interceptor
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-    return request;
-});
+);
+
+// Add a response interceptor
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
 
 export { api };
-export default api;

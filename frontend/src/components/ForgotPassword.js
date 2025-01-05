@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, message, Steps } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { UserOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
+import { Form, Input, Button, message, Steps, Typography, Alert } from 'antd';
+import { useNavigate, Link } from 'react-router-dom';
+import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
 
 const { Step } = Steps;
+const { Title } = Typography;
 
 const ForgotPassword = () => {
     const [currentStep, setCurrentStep] = useState(0);
     const [verificationCode, setVerificationCode] = useState('');
     const [userInfo, setUserInfo] = useState(null);
+    const [showVerificationAlert, setShowVerificationAlert] = useState(false);
     const navigate = useNavigate();
 
     const onVerifyIdentity = async (values) => {
@@ -17,7 +19,8 @@ const ForgotPassword = () => {
             const response = await api.post('/api/auth/verify-identity', values);
             if (response.data.success) {
                 setUserInfo(response.data.user);
-                message.success('Identity verified! Check your email for the verification code.');
+                setVerificationCode(response.data.verificationCode); // For testing only
+                setShowVerificationAlert(true);
                 setCurrentStep(1);
             }
         } catch (error) {
@@ -26,16 +29,10 @@ const ForgotPassword = () => {
     };
 
     const onVerifyCode = async (values) => {
-        try {
-            const response = await api.post('/api/auth/verify-code', {
-                email: userInfo.email,
-                code: values.code
-            });
-            if (response.data.success) {
-                setVerificationCode(values.code);
-                setCurrentStep(2);
-            }
-        } catch (error) {
+        if (values.code === verificationCode) {
+            message.success('Code verified successfully!');
+            setCurrentStep(2);
+        } else {
             message.error('Invalid verification code');
         }
     };
@@ -78,7 +75,7 @@ const ForgotPassword = () => {
                     >
                         <Input prefix={<UserOutlined />} placeholder="Enter your username" />
                     </Form.Item>
-                    <Button type="primary" htmlType="submit" style={{ width: '100%' }}>
+                    <Button type="primary" htmlType="submit" style={{ width: '100%', marginBottom: '12px' }}>
                         Verify Identity
                     </Button>
                 </Form>
@@ -93,9 +90,9 @@ const ForgotPassword = () => {
                         label="Verification Code"
                         rules={[{ required: true, message: 'Please input the verification code!' }]}
                     >
-                        <Input placeholder="Enter the code sent to your email" />
+                        <Input placeholder="Enter the verification code shown above" />
                     </Form.Item>
-                    <Button type="primary" htmlType="submit" style={{ width: '100%' }}>
+                    <Button type="primary" htmlType="submit" style={{ width: '100%', marginBottom: '12px' }}>
                         Verify Code
                     </Button>
                 </Form>
@@ -133,7 +130,7 @@ const ForgotPassword = () => {
                     >
                         <Input.Password prefix={<LockOutlined />} placeholder="Confirm new password" />
                     </Form.Item>
-                    <Button type="primary" htmlType="submit" style={{ width: '100%' }}>
+                    <Button type="primary" htmlType="submit" style={{ width: '100%', marginBottom: '12px' }}>
                         Reset Password
                     </Button>
                 </Form>
@@ -142,24 +139,67 @@ const ForgotPassword = () => {
     ];
 
     return (
-        <div style={{ 
-            maxWidth: 500, 
-            margin: '50px auto', 
-            padding: '20px',
-            boxShadow: '0 0 10px rgba(0,0,0,0.1)',
-            borderRadius: '8px',
-            background: 'white'
-        }}>
-            <h2 style={{ textAlign: 'center', marginBottom: '24px' }}>Reset Password</h2>
-            
-            <Steps current={currentStep} style={{ marginBottom: '24px' }}>
-                {steps.map(item => (
-                    <Step key={item.title} title={item.title} />
-                ))}
-            </Steps>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <div style={{ 
+                textAlign: 'center', 
+                padding: '40px 0',
+                background: '#f0f2f5'
+            }}>
+                <Title style={{ 
+                    margin: 0,
+                    color: '#000000',
+                    fontSize: '32px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '2px',
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+                }}>
+                    Job Application Tracker
+                </Title>
+            </div>
 
-            <div style={{ marginTop: '24px' }}>
-                {steps[currentStep].content}
+            <div style={{ 
+                maxWidth: 500, 
+                margin: '20px auto',
+                padding: '20px',
+                boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                borderRadius: '8px',
+                background: 'white',
+                flex: 1
+            }}>
+                <Title level={3} style={{ textAlign: 'center', marginBottom: '24px' }}>
+                    Reset Password
+                </Title>
+
+                {showVerificationAlert && (
+                    <Alert
+                        message="Verification Code"
+                        description={`Your verification code is: ${verificationCode}`}
+                        type="success"
+                        showIcon
+                        closable
+                        onClose={() => setShowVerificationAlert(false)}
+                        style={{ marginBottom: '24px' }}
+                    />
+                )}
+
+                <Steps current={currentStep} style={{ marginBottom: '24px' }}>
+                    {steps.map(item => (
+                        <Step key={item.title} title={item.title} />
+                    ))}
+                </Steps>
+
+                <div style={{ marginTop: '24px' }}>
+                    {steps[currentStep].content}
+                </div>
+
+                <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                    <Button 
+                        icon={<ArrowLeftOutlined />} 
+                        onClick={() => navigate('/login')}
+                    >
+                        Back to Login
+                    </Button>
+                </div>
             </div>
         </div>
     );
