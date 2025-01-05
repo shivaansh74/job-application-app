@@ -11,20 +11,28 @@ const Login = () => {
 
     const onFinish = async (values) => {
         try {
+            // Clear any existing token
+            localStorage.removeItem('token');
+            delete api.defaults.headers.common['Authorization'];
+
             const response = await api.post('/api/auth/login', {
                 username: values.username,
                 password: values.password
             });
 
             if (response.data.success) {
-                // Save token
+                // Save new token
                 localStorage.setItem('token', response.data.token);
                 
-                // Set default authorization header
+                // Set new authorization header
                 api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
                 
                 message.success('Login successful!');
-                navigate('/jobs');
+
+                // Force a page reload after successful login
+                window.location.href = '/jobs';
+            } else {
+                message.error(response.data.message || 'Login failed');
             }
         } catch (error) {
             console.error('Login error:', error);
