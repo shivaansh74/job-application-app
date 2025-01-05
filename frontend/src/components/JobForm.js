@@ -5,8 +5,15 @@ import moment from 'moment';
 const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
   const [form] = Form.useForm();
 
-  // Get current date in user's timezone
-  const today = moment().startOf('day');
+  const handleSubmit = (values) => {
+    // Format the date and salary before submitting
+    const formattedValues = {
+      ...values,
+      applied_date: values.applied_date.format('YYYY-MM-DD'),
+      salary: values.salary ? values.salary.replace(/[^0-9]/g, '') : null
+    };
+    onSubmit(formattedValues);
+  };
 
   // Reset form when modal opens
   const handleOpen = () => {
@@ -18,22 +25,12 @@ const JobForm = ({ visible, onCancel, onSubmit, initialValues }) => {
         salary: initialValues.salary ? `$${initialValues.salary}` : '$'
       });
     } else {
-      // Set default values for new job
       form.setFieldsValue({
-        applied_date: today,
+        applied_date: moment(),
         status: 'applied',
         salary: '$'
       });
     }
-  };
-
-  const handleSubmit = (values) => {
-    // Remove $ from salary and convert to number
-    const cleanedValues = {
-      ...values,
-      salary: values.salary ? Number(values.salary.replace(/[^0-9]/g, '')) : null
-    };
-    onSubmit(cleanedValues);
   };
 
   return (

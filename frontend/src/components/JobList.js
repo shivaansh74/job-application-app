@@ -60,6 +60,12 @@ const JobList = () => {
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, [token]);
+
   const fetchJobs = async () => {
     try {
       const response = await api.get('/api/jobs');
@@ -309,11 +315,11 @@ const JobList = () => {
                   try {
                     if (editingJob) {
                       await api.put(`/api/jobs/${editingJob.id}`, values);
+                      message.success('Job updated successfully');
                     } else {
                       await api.post('/api/jobs', values);
+                      message.success('Job added successfully');
                     }
-                    
-                    message.success(`Job ${editingJob ? 'updated' : 'added'} successfully`);
                     setIsModalVisible(false);
                     setEditingJob(null);
                     fetchJobs();
